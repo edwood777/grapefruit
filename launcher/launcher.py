@@ -1,15 +1,12 @@
 #!/usr/bin/env python
-import struct
-import socket
-
 ############### CUSTOMIZATION OPTIONS ###############
 
-attack_network = "10.0.0.0" # the network given as the CTF enviornment
+attack_network = "10.60.0.0" # the network given as the CTF enviornment
 network_cidr = 24 # the network mask of the given network, i.e. 24 == 255.255.255.0
 target_host = 2 # the host number of the target computer in a given network
-currentteam = 8 # change this to your team number.  This number will _never_ have a job run against it
-number_of_teams = 2048 # change this to the number of teams
-default_interval = 5 * 60 # 5 minutes
+currentteam = 176 # change this to your team number.  This number will _never_ have a job run against it
+number_of_teams = 430 # change this to the number of teams
+default_interval = 2 * 60 # 2 minutes
 default_chaff = 10 # Chance of chaff getting sent in any given second.  For example, there is a 1 in 10 chance of chaff getting sent.  Set to zero for no chaff
 
 def ip2int(addr):                                                               
@@ -33,7 +30,7 @@ def submit(flag, station, job):
 
 ############### DON'T MESS WITH STUFF BELOW THIS LINE (unless you know what you're doing) ###############
 
-import sys, imp, os, time, random, json, urllib, urllib2, multiprocessing, readline, threading, re
+import sys, imp, os, time, random, json, urllib, urllib2, multiprocessing, readline, threading, re, sqlite3, struct, socket
 from multiprocessing.managers import BaseManager
 
 sys.path.insert(0, './jobs')
@@ -478,13 +475,19 @@ class Launcher:
 
 		print "\nType 'help' to for usage\n"
 		while True:
-			res = raw_input("> ")
-			if len(res) > 0:
-				res = res.rstrip().split(" ")
-				if res[0] in self.commands:
-					self.commands[res[0]](*res[1:])
-				else:
-					print "Not a valid command. Type 'help' for usage"
+			try:
+				res = raw_input("> ")
+				if len(res) > 0:
+					res = res.rstrip().split(" ")
+					if res[0] in self.commands:
+						self.commands[res[0]](*res[1:])
+					else:
+						print "Not a valid command. Type 'help' for usage"
+						
+			except KeyboardInterrupt:
+				self.exportJobs("./temp.jobs")
+				print "[!] QUITTING!, jobs saved to 'temp.jobs'"
+				exit(0)
 
 # http://stackoverflow.com/questions/5637124/tab-completion-in-pythons-raw-input
 
