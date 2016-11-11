@@ -1,15 +1,30 @@
 #!/usr/bin/env python
+import struct
+import socket
 
 ############### CUSTOMIZATION OPTIONS ###############
 
+attack_network = "10.0.0.0" # the network given as the CTF enviornment
+network_cidr = 24 # the network mask of the given network, i.e. 24 == 255.255.255.0
+target_host = 2 # the host number of the target computer in a given network
 currentteam = 8 # change this to your team number.  This number will _never_ have a job run against it
-number_of_teams = 12 # change this to the number of teams
+number_of_teams = 2048 # change this to the number of teams
 default_interval = 5 * 60 # 5 minutes
 default_chaff = 10 # Chance of chaff getting sent in any given second.  For example, there is a 1 in 10 chance of chaff getting sent.  Set to zero for no chaff
 
+def ip2int(addr):                                                               
+    return struct.unpack("!I", socket.inet_aton(addr))[0]                       
+
+def int2ip(addr):                                                               
+    return socket.inet_ntoa(struct.pack("!I", addr)) 
+
 def getIpFromStation(station):
 	# this needs to return an IP for a given station number
-	return "10.0.%d.2" % station
+	networkSize = 2 ** (32-network_cidr)
+	baseIP = ip2int(attack_network)
+	networkIP = baseIP + (networkSize * int(station))
+	targetIP = networkIP + target_host
+	return int2ip(targetIP)
 
 def submit(flag, station, job):
 	# this is where you'll implement automatic submission
@@ -143,13 +158,14 @@ class Job:
 		validStations = range(1, number_of_teams+1)
 		if currentteam in validStations:
 			validStations.remove(currentteam)
+
 		self.stations = [x for x in stations if x in validStations]
 
 		for station in oldStations:
 			if station not in self.stations:
 				self.killThread(station, True, True)
 		
-		print "Successfully changed stations for %s to [%s]" % (self.name, ", ".join(str(x) for x in self.stations))
+		print "Successfully changed stations for %s to [%s ... ]" % (self.name, ", ".join(getIpFromStation(str(x)) for x in self.stations[:8]))
 		return True
 
 	def changeInterval(self, interval):
@@ -349,6 +365,10 @@ class Launcher:
 		for i in stat.split(","):
 			if i.isdigit():
 				nstat.append(int(i))
+			elif "-" in i:
+				start = int(i.split("-")[0])
+				end = int(i.split("-")[-1])
+				nstat += range(start,end+1)
 		if len(nstat) > 0:
 			return (True, nstat)
 		else:
